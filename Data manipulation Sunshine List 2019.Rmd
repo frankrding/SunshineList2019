@@ -1,0 +1,126 @@
+---
+title: "Sunshine list"
+output: html_document
+---
+
+## Importing libraries
+```{r}
+library(dplyr)
+library(ggplot2)
+
+options(scipen = 20)
+```
+
+## Reading Sunshine List 2019 data set, basic data cleaning
+```{r}
+# importing Ontario 2019 Sunshine list
+dfRaw <- read.csv("SunshineList2019.csv", stringsAsFactors = FALSE)
+
+# checking duplicates, none as equal number of unique and total rows
+nrow(unique(dfRaw))
+nrow(dfRaw)
+# making secondary df that will be modified in later sections
+dfCleaned <- dfRaw
+# cleaning Salary.Paid col, removing $ and , then transforming col into numeric
+dfCleaned$Salary.Paid <- as.numeric(gsub('[$,]', '', dfCleaned$Salary.Paid))
+```
+
+
+## Basic exploration, number of different unique sectors, positions, distribution of salaries
+```{r}
+# num of unique sectors is 17
+unique(dfRaw$Sector)
+# num of unique employers is 1898
+length(unique(dfRaw$Employer))
+# num of unique job titles is 32868
+length(unique(dfRaw$Job.Title))
+
+
+# graphing distribution for all salaries
+dfGraphAllSalaries <- dfCleaned
+ggplot(data = dfGraphAllSalaries, aes(Salary.Paid)) + geom_histogram(binwidth=1000)
+
+# graphing distribution for salaries > 250k
+dfGraph250kSalaries <- dfGraphAllSalaries[!(dfGraphAllSalaries$Salary.Paid < 250000), ]
+ggplot(data = dfGraph250kSalaries, aes(Salary.Paid)) + geom_histogram(binwidth=1000)
+
+```
+
+
+
+
+## Listing total salary by sector
+```{r}
+# summarizing df by sum of Salary.Paid by sector
+dfSector <- dfCleaned
+dfSector <- group_by(dfSector, Sector)
+dfSector <- summarize(dfSector, total = sum(Salary.Paid))
+
+# graphing total salaries by sector
+ggplot(dfSector, aes(x = Sector, y = total)) + 
+  geom_bar(stat = 'identity') +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))
+
+# graph in log10 to show categories such as seconded that are too low to appear
+ggplot(dfSector, aes(x = Sector, y = log10(total))) + 
+  geom_bar(stat = 'identity') +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))
+```
+
+
+## Institutions by number of people in the list
+```{r}
+# df of number of employed by employer
+dfNumInstit <- dfCleaned %>% group_by(Employer) %>% summarize(count = n()) %>% arrange(desc(count))
+dfNumInstit
+
+# graphing overall distribution
+ggplot(dfNumInstit, aes(Employer, count)) +
+  geom_point() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+
+## People by their salaries and their institutions
+```{r}
+# df of people and their respective institution listed by descending order of salary
+dfTopPeople <- dfCleaned %>% group_by(Last.Name, First.Name, Employer) %>% 
+  arrange(desc(Salary.Paid))
+dfTopPeople
+```
+
+
+## Scatterplot of top 25 titles in average comp and their number of people in the list
+```{r, fig.width = 12}
+# df of mean salary by job title and number of people of that title
+dfMeanCompNumTitles <- dfCleaned %>% group_by(Job.Title) %>% 
+  summarize(mean = mean(Salary.Paid), count = n()) %>% arrange(desc(mean))
+dfMeanCompNumTitles
+
+# graph of top 25 job titles in pay compensation matching the count threshold of 20
+dfCompTitlesTop25 <- dfMeanCompNumTitles %>% filter(count > 19) %>% head(25)
+ggplot(dfCompTitlesTop25, aes(x = Job.Title, y = mean)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))
+
+# graph of bottom 25 job titles in pay compensation matching the count threshold of 20
+dfCompTitlesBot25 <- dfMeanCompNumTitles %>% filter(count > 19) %>% tail(25)
+ggplot(dfCompTitlesBot25, aes(x = Job.Title, y = mean)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))
+
+
+# graph of top 50 most frequent job titles
+dfFreqTitlesTop50 <- dfMeanCompNumTitles %>% arrange(desc(count)) %>% head(50)
+ggplot(dfFreqTitlesTop50, aes(x = Job.Title, y = count)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))
+
+# respective avg salaries for the top 50 most freq job titles
+dfFreqTitlesTop50Comp <- dfMeanCompNumTitles %>% filter(Job.Title %in% dfTopFreqTitles$Job.Title)
+ggplot(dfFreqTitlesTop50Comp, aes(x = Job.Title, y = mean)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))
+```
+
