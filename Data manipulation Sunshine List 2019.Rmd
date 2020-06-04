@@ -1,5 +1,5 @@
 ---
-title: "Sunshine list"
+title: "Data manipulation practice: Sunshine list 2019"
 output: html_document
 ---
 
@@ -118,7 +118,7 @@ ggplot(dfFreqTitlesTop50, aes(x = Job.Title, y = count)) +
   theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))
 
 # respective avg salaries for the top 50 most freq job titles
-dfFreqTitlesTop50Comp <- dfMeanCompNumTitles %>% filter(Job.Title %in% dfTopFreqTitles$Job.Title)
+dfFreqTitlesTop50Comp <- dfMeanCompNumTitles %>% filter(Job.Title %in% dfFreqTitlesTop50$Job.Title)
 ggplot(dfFreqTitlesTop50Comp, aes(x = Job.Title, y = mean)) +
   geom_point() +
   theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))
